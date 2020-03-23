@@ -1,2 +1,11 @@
-# cakephp-aws-s3bucket
-AWS S3Bucket plugin for CakePHP
+# AWS S3Bucket plugin for CakePHP
+
+## Installation
+
+You can install this plugin into your CakePHP application using [composer](https://getcomposer.org).
+
+The recommended way to install composer packages is:
+
+```
+composer require horidaisuke/cakephp-aws-s3bucket
+```
