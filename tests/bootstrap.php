@@ -38,3 +38,17 @@ if (file_exists($root . '/config/bootstrap.php')) {
 
     return;
 }
+
+Cake\Datasource\ConnectionManager::setConfig('test', [
+    'className'  => 'S3Bucket\Datasource\Connection',
+    'bucketName' => 'test-bucket',
+    'acl' => 'public-read',
+    'client' => [
+        'credentials' => [
+            'key' => 'test-key',
+            'secret' => 'test-secret',
+        ],
+        'region' => 'test-region',
+        'version' => '2006-03-01',
+    ],
+]);
