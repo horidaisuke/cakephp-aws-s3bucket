@@ -45,14 +45,23 @@ class Connection implements ConnectionInterface
         }
 
         $this->_config = $config;
+        $this->_s3Client = $this->_getS3Client($config);
+        $this->_s3Client->registerStreamWrapper();
+        $this->_s3Client->getCommand('HeadBucket', ['Bucket' => $this->_config['bucketName']]);
+    }
 
-        $this->_s3Client = new S3Client(Hash::merge([
+    /**
+     * create new S3Client instance
+     *
+     * @param array $config
+     * @return S3Client
+     */
+    protected function _getS3Client(array $config = []): S3Client
+    {
+        return new S3Client(Hash::merge([
             'credentials' => null,
             'version' => 'latest',
         ], $config['client']));
-        $this->_s3Client->registerStreamWrapper();
-
-        $this->_s3Client->getCommand('HeadBucket', ['Bucket' => $this->_config['bucketName']]);
     }
 
     /**
