@@ -280,7 +280,7 @@ class Connection implements ConnectionInterface
      */
     public function getLogger(): LoggerInterface
     {
-        return null;
+        throw new \RuntimeException('This method is not implemented.');
     }
 
     /**
@@ -296,7 +296,7 @@ class Connection implements ConnectionInterface
      */
     public function getCacher(): CacheInterface
     {
-        return null;
+        throw new \RuntimeException('This method is not implemented.');
     }
 
     /**
