@@ -3,45 +3,40 @@ declare(strict_types=1);
 
 namespace S3Bucket\Test\TestCase\Datasource;
 
+use Aws\Result;
+use Aws\S3\S3Client;
 use Cake\TestSuite\TestCase;
 use S3Bucket\Datasource\Connection;
 
+class MockConnection extends Connection
+{
+    public static $s3Client;
+
+    protected function _getS3Client(array $config = []): S3Client
+    {
+        return self::$s3Client;
+    }
+}
+
 /**
  * Connection Testcase
+ *
+ * @property \S3Bucket\Datasource\Connection $Connection
+ * @property \Aws\S3\S3Client $S3Client
+ * @property \Aws\Result $Result
  */
 class ConnectionTest extends TestCase
 {
     /**
-     * tear down method
+     * setup
      *
      * @return void
      */
-    public function tearDown(): void
+    public function setUp(): void
     {
-        \Mockery::close();
-    }
+        parent::setUp();
 
-    /**
-     * @return \Mockery\MockInterface
-     */
-    private function __getS3ClientMock()
-    {
-        $mock = \Mockery::mock('overload:\Aws\S3\S3Client');
-        $mock->shouldReceive('registerStreamWrapper')
-            ->once();
-        $mock->shouldReceive('getCommand')
-            ->once()
-            ->andReturn(true);
-
-        return $mock;
-    }
-
-    /**
-     * @return \S3Bucket\Datasource\Connection
-     */
-    private function __getConnectionInstance()
-    {
-        $params = [
+        $config = [
             'bucketName' => 'test-bucket',
             'acl' => 'public-read',
             'client' => [
@@ -53,8 +48,28 @@ class ConnectionTest extends TestCase
                 'version' => '2006-03-01',
             ],
         ];
+        $this->S3Client = $this->createPartialMock(S3Client::class, [
+            '__call',
+            'registerStreamWrapper',
+            'getCommand',
+            'doesObjectExist',
+        ]);
+        $this->S3Client->expects($this->once())->method('registerStreamWrapper');
+        $this->S3Client->expects($this->once())->method('getCommand')->with($this->equalTo('HeadBucket'), $this->equalTo(['Bucket' => $config['bucketName']]))->willReturn(true);
+        MockConnection::$s3Client = $this->S3Client;
+        $this->Connection = new MockConnection($config);
+        $this->Result = $this->createMock(Result::class);
+    }
 
-        return new Connection($params);
+    /**
+     * tear down
+     *
+     * @return void
+     */
+    public function tearDown(): void
+    {
+        unset($this->Connection);
+        unset($this->S3Client);
     }
 
     /**
@@ -64,11 +79,7 @@ class ConnectionTest extends TestCase
      */
     public function testNewInstanceSuccess()
     {
-        $this->__getS3ClientMock();
-
-        $connection = $this->__getConnectionInstance();
-
-        $config = $connection->config();
+        $config = $this->Connection->config();
         $this->assertEquals('test-key', $config['client']['credentials']['key']);
     }
 
@@ -80,9 +91,8 @@ class ConnectionTest extends TestCase
     public function testNewInstanceMissingArguments()
     {
         $this->expectException(\InvalidArgumentException::class);
-
         $params = [];
-        new Connection($params);
+        new MockConnection($params);
     }
 
     /**
@@ -90,18 +100,14 @@ class ConnectionTest extends TestCase
      */
     public function testCopyObject()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('copyObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-dest-key',
-                'CopySource' => 'test-bucket/test-src-key',
-                'ACL' => 'public-read',
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('copyObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-dest-key',
+            'CopySource' => 'test-bucket/test-src-key',
+            'ACL' => 'public-read',
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->copyObject('/test-src-key', '/test-dest-key');
+        $this->Connection->copyObject('/test-src-key', '/test-dest-key');
     }
 
     /**
@@ -109,19 +115,15 @@ class ConnectionTest extends TestCase
      */
     public function testCopyObjectOverWroteOptions()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('copyObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-dest-key',
-                'CopySource' => 'test-bucket/test-src-key',
-                'ACL' => 'overwrote',
-                'overwrote-options' => true,
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('copyObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-dest-key',
+            'CopySource' => 'test-bucket/test-src-key',
+            'ACL' => 'overwrote',
+            'overwrote-options' => true,
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->copyObject(
+        $this->Connection->copyObject(
             '/test-src-key',
             '/test-dest-key',
             [
@@ -136,16 +138,12 @@ class ConnectionTest extends TestCase
      */
     public function testDeleteObject()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('deleteObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-key',
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('deleteObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-key',
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->deleteObject('/test-key');
+        $this->Connection->deleteObject('/test-key');
     }
 
     /**
@@ -153,17 +151,13 @@ class ConnectionTest extends TestCase
      */
     public function testDeleteObjectOverWroteOptions()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('deleteObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-key',
-                'overwrote-options' => true,
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('deleteObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-key',
+            'overwrote-options' => true,
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->deleteObject(
+        $this->Connection->deleteObject(
             '/test-key',
             [
                 'overwrote-options' => true,
@@ -176,22 +170,18 @@ class ConnectionTest extends TestCase
      */
     public function testDeleteObjects()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('deleteObjects')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Delete' => [
-                    'Objects' => [
-                        ['Key' => 'test-key1'],
-                        ['Key' => 'test-key2'],
-                        ['Key' => 'test-key3'],
-                    ],
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('deleteObjects'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Delete' => [
+                'Objects' => [
+                    ['Key' => 'test-key1'],
+                    ['Key' => 'test-key2'],
+                    ['Key' => 'test-key3'],
                 ],
-            ]);
+            ],
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->deleteObjects([
+        $this->Connection->deleteObjects([
             '/test-key1',
             '/test-key2',
             '/test-key3',
@@ -203,23 +193,19 @@ class ConnectionTest extends TestCase
      */
     public function testDeleteObjectsOverWroteOptions()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('deleteObjects')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Delete' => [
-                    'Objects' => [
-                        ['Key' => 'test-key1'],
-                        ['Key' => 'test-key2'],
-                        ['Key' => 'test-key3'],
-                    ],
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('deleteObjects'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Delete' => [
+                'Objects' => [
+                    ['Key' => 'test-key1'],
+                    ['Key' => 'test-key2'],
+                    ['Key' => 'test-key3'],
                 ],
-                'overwrote-options' => true,
-            ]);
+            ],
+            'overwrote-options' => true,
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->deleteObjects(
+        $this->Connection->deleteObjects(
             [
                 '/test-key1',
                 '/test-key2',
@@ -236,17 +222,9 @@ class ConnectionTest extends TestCase
      */
     public function testDoesObjectExist()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('doesObjectExist')
-            ->once()
-            ->with(
-                'test-bucket',
-                'test-key',
-                []
-            );
+        $this->S3Client->expects($this->once())->method('doesObjectExist')->with($this->equalTo('test-bucket'), $this->equalTo('test-key'), $this->equalTo([]))->willReturn(true);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->doesObjectExist('/test-key');
+        $this->Connection->doesObjectExist('/test-key');
     }
 
     /**
@@ -254,19 +232,11 @@ class ConnectionTest extends TestCase
      */
     public function testDoesObjectExistOverWroteOptions()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('doesObjectExist')
-            ->once()
-            ->with(
-                'test-bucket',
-                'test-key',
-                [
-                    'overwrote-options' => true,
-                ]
-            );
+        $this->S3Client->expects($this->once())->method('doesObjectExist')->with($this->equalTo('test-bucket'), $this->equalTo('test-key'), $this->equalTo([
+            'overwrote-options' => true,
+        ]))->willReturn(true);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->doesObjectExist(
+        $this->Connection->doesObjectExist(
             '/test-key',
             [
                 'overwrote-options' => true,
@@ -279,18 +249,14 @@ class ConnectionTest extends TestCase
      */
     public function testGetObject()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('getObject')
-            ->twice()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-key',
-                'ACL' => 'public-read',
-            ]);
+        $this->S3Client->expects($this->exactly(2))->method('__call')->with($this->equalTo('getObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-key',
+            'ACL' => 'public-read',
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->getObject('test-key');
-        $connection->getObject('/test-key');
+        $this->Connection->getObject('test-key');
+        $this->Connection->getObject('/test-key');
     }
 
     /**
@@ -298,18 +264,14 @@ class ConnectionTest extends TestCase
      */
     public function testGetObjectOverWroteOptions()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('getObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-key',
-                'ACL' => 'overwrote',
-                'overwrote-options' => true,
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('getObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-key',
+            'ACL' => 'overwrote',
+            'overwrote-options' => true,
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->getObject(
+        $this->Connection->getObject(
             'test-key',
             [
                 'ACL' => 'overwrote',
@@ -323,16 +285,12 @@ class ConnectionTest extends TestCase
      */
     public function testHeadObject()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('headObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-key',
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('headObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-key',
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->headObject('/test-key');
+        $this->Connection->headObject('/test-key');
     }
 
     /**
@@ -340,17 +298,13 @@ class ConnectionTest extends TestCase
      */
     public function testHeadObjectOverWroteOptions()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('headObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-key',
-                'overwrote-options' => true,
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('headObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-key',
+            'overwrote-options' => true,
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->headObject(
+        $this->Connection->headObject(
             '/test-key',
             [
                 'overwrote-options' => true,
@@ -363,18 +317,14 @@ class ConnectionTest extends TestCase
      */
     public function testPutObject()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('putObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-key',
-                'Body' => 'test-body',
-                'ACL' => 'public-read',
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('putObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-key',
+            'Body' => 'test-body',
+            'ACL' => 'public-read',
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->putObject('/test-key', 'test-body');
+        $this->Connection->putObject('/test-key', 'test-body');
     }
 
     /**
@@ -382,19 +332,15 @@ class ConnectionTest extends TestCase
      */
     public function testPutObjectOverWroteOptions()
     {
-        $mock = $this->__getS3ClientMock();
-        $mock->shouldReceive('putObject')
-            ->once()
-            ->with([
-                'Bucket' => 'test-bucket',
-                'Key' => 'test-key',
-                'Body' => 'test-body',
-                'ACL' => 'public-read',
-                'overwrote-options' => true,
-            ]);
+        $this->S3Client->expects($this->once())->method('__call')->with($this->equalTo('putObject'), $this->equalTo([[
+            'Bucket' => 'test-bucket',
+            'Key' => 'test-key',
+            'Body' => 'test-body',
+            'ACL' => 'public-read',
+            'overwrote-options' => true,
+        ]]))->willReturn($this->Result);
 
-        $connection = $this->__getConnectionInstance();
-        $connection->putObject(
+        $this->Connection->putObject(
             '/test-key',
             'test-body',
             [
