@@ -12,6 +12,7 @@ use Psr\SimpleCache\CacheInterface;
 
 /**
  * Class Connection
+ *
  * @package S3Bucket\Datasource
  * @method object getDriver()
  * @method bool supportsDynamicConstraints()
@@ -54,7 +55,7 @@ class Connection implements ConnectionInterface
      * create new S3Client instance
      *
      * @param array $config
-     * @return S3Client
+     * @return \Aws\S3\S3Client
      */
     protected function _getS3Client(array $config = []): S3Client
     {
@@ -70,7 +71,6 @@ class Connection implements ConnectionInterface
      *
      * @param string $key
      * @param array $options
-     *
      * @return string
      */
     private function __keyPreProcess(string $key, array $options): string
@@ -98,11 +98,9 @@ class Connection implements ConnectionInterface
      *
      * @see S3Client::copyObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#copyobject
-     *
      * @param string $srcKey
      * @param string $destKey
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function copyObject(string $srcKey, string $destKey, array $options = []): Result
@@ -125,10 +123,8 @@ class Connection implements ConnectionInterface
      *
      * @see S3Client::deleteObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#deleteobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function deleteObject(string $key, array $options = []): Result
@@ -148,10 +144,8 @@ class Connection implements ConnectionInterface
      *
      * @see S3Client::deleteObjects
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#deleteobjects
-     *
      * @param array $keys
      * @param array $options
-     *
      * @return \Aws\Result
      */
     public function deleteObjects(array $keys, array $options = []): Result
@@ -177,10 +171,8 @@ class Connection implements ConnectionInterface
      *
      * @see S3Client::doesObjectExist
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#headobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return bool
      */
     public function doesObjectExist(string $key, array $options = []): bool
@@ -199,10 +191,8 @@ class Connection implements ConnectionInterface
      *
      * @see S3Client::getObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#getobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function getObject(string $key, array $options = []): Result
@@ -223,10 +213,8 @@ class Connection implements ConnectionInterface
      *
      * @see S3Client::headObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#headobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function headObject(string $key, array $options = []): Result
@@ -246,11 +234,9 @@ class Connection implements ConnectionInterface
      *
      * @see S3Client::putObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#putobject
-     *
      * @param string $key
      * @param string $content
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function putObject(string $key, $content, array $options = []): Result
