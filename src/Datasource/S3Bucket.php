@@ -10,6 +10,7 @@ use GuzzleHttp\Psr7\Stream;
 
 /**
  * Class S3Bucket
+ *
  * @package S3Bucket\Datasource
  */
 class S3Bucket
@@ -58,7 +59,6 @@ class S3Bucket
      * Returns the connection instance or sets a new one
      *
      * @param \S3Bucket\Datasource\Connection|null $conn The new connection instance
-     *
      * @return \S3Bucket\Datasource\Connection
      */
     public function connection(?ConnectionInterface $conn = null): Connection
@@ -74,7 +74,6 @@ class S3Bucket
      * Initialize method
      *
      * @param array $config The configuration for the Table.
-     *
      * @return void
      */
     public function initialize(array $config): void
@@ -87,11 +86,9 @@ class S3Bucket
      *
      * @see \S3Bucket\Datasource\S3Client::copyObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#copyobject
-     *
      * @param string $srcKey
      * @param string $destKey
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function copyObject(string $srcKey, string $destKey, array $options = []): Result
@@ -106,10 +103,8 @@ class S3Bucket
      *
      * @see \S3Bucket\Datasource\S3Client::deleteObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#deleteobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function deleteObject(string $key, array $options = []): Result
@@ -124,10 +119,8 @@ class S3Bucket
      *
      * @see \S3Bucket\Datasource\S3Client::deleteObjects
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#deleteobjects
-     *
      * @param array $keys
      * @param array $options
-     *
      * @return \Aws\Result
      */
     public function deleteObjects(array $keys, array $options = []): Result
@@ -142,10 +135,8 @@ class S3Bucket
      *
      * @see \S3Bucket\Datasource\S3Client::doesObjectExist
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#headobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return bool
      */
     public function doesObjectExist(string $key, array $options = []): bool
@@ -160,10 +151,8 @@ class S3Bucket
      *
      * @see \S3Bucket\Datasource\S3Client::getObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#getobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function getObject(string $key, array $options = []): Result
@@ -178,10 +167,8 @@ class S3Bucket
      *
      * @see \S3Bucket\Datasource\S3Client::headObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#headobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function headObject(string $key, array $options = []): Result
@@ -196,11 +183,9 @@ class S3Bucket
      *
      * @see \S3Bucket\Datasource\S3Client::putObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#putobject
-     *
      * @param string $key
      * @param string $content
      * @param array  $options
-     *
      * @return \Aws\Result
      */
     public function putObject(string $key, string $content, array $options = []): Result
@@ -215,10 +200,8 @@ class S3Bucket
      *
      * @see \S3Bucket\Datasource\S3Client::getObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#getobject
-     *
      * @param string $key
      * @param array  $options
-     *
      * @return \GuzzleHttp\Psr7\Stream
      */
     public function getObjectBody(string $key, array $options = []): Stream
@@ -233,11 +216,9 @@ class S3Bucket
      * @see \S3Bucket\Datasource\S3Client::deleteObject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#copyobject
      * @see http://docs.aws.amazon.com/aws-sdk-php/v3/api/api-s3-2006-03-01.html#deleteobject
-     *
      * @param string $srcKey
      * @param string $destKey
      * @param array  $options
-     *
      * @return \Aws\Result Return the CopyObject API result.
      */
     public function moveObject(string $srcKey, string $destKey, array $options = []): Result

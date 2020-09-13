@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace S3Bucket\Test\TestCase\Datasource;
 
+use Aws\Result;
 use Cake\TestSuite\TestCase;
 use GuzzleHttp\Psr7\Stream;
+use S3Bucket\Datasource\Connection;
 use S3Bucket\Datasource\S3Bucket;
 
 class MockConnectionManager
@@ -24,17 +26,40 @@ class MockS3Bucket extends S3Bucket
 
 /**
  * S3Bucket Testcase
+ *
+ * @property \S3Bucket\Datasource\Connection $Connection
+ * @property \Aws\Result $Result
  */
 class S3BucketTest extends TestCase
 {
     /**
-     * tear down method
+     * setup
+     */
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $this->Connection = $this->createPartialMock(Connection::class, [
+            'copyObject',
+            'deleteObject',
+            'deleteObjects',
+            'doesObjectExist',
+            'getObject',
+            'headObject',
+            'putObject',
+        ]);
+        MockConnectionManager::$connection = $this->Connection;
+        $this->Result = $this->createMock(Result::class);
+    }
+
+    /**
+     * tear down
      *
      * @return void
      */
     public function tearDown(): void
     {
-        \Mockery::close();
+        unset($this->Connection);
     }
 
     /**
@@ -42,32 +67,13 @@ class S3BucketTest extends TestCase
      */
     public function testConnectionApi()
     {
-        // Create Connection mock -> using ConnectionManager mock
-        $connectionMock = \Mockery::mock('\S3Bucket\Datasource\Connection');
-        $connectionMock->shouldReceive('copyObject')
-            ->once()
-            ->with('/test-src-key', '/test-dest-key', ['option' => true]);
-        $connectionMock->shouldReceive('deleteObject')
-            ->once()
-            ->with('/test-key', ['option' => true]);
-        $connectionMock->shouldReceive('deleteObjects')
-            ->once()
-            ->with(['/test-key1', '/test-key2', '/test-key3'], ['option' => true]);
-        $connectionMock->shouldReceive('doesObjectExist')
-            ->once()
-            ->with('/test-key', ['option' => true]);
-        $connectionMock->shouldReceive('getObject')
-            ->once()
-            ->with('/test-key', ['option' => true]);
-        $connectionMock->shouldReceive('headObject')
-            ->once()
-            ->with('/test-key', ['option' => true]);
-        $connectionMock->shouldReceive('putObject')
-            ->once()
-            ->with('/test-key', 'test-content', ['option' => true]);
-
-        // Set ConnectionManager mock
-        MockConnectionManager::$connection = $connectionMock;
+        $this->Connection->expects($this->once())->method('copyObject')->with($this->equalTo('/test-src-key'), $this->equalTo('/test-dest-key'), $this->equalTo(['option' => true, 'prefix' => '']))->willReturn($this->Result);
+        $this->Connection->expects($this->once())->method('deleteObject')->with($this->equalTo('/test-key'), $this->equalTo(['option' => true, 'prefix' => '']))->willReturn($this->Result);
+        $this->Connection->expects($this->once())->method('deleteObjects')->with($this->equalTo(['/test-key1', '/test-key2', '/test-key3']), $this->equalTo(['option' => true, 'prefix' => '']))->willReturn($this->Result);
+        $this->Connection->expects($this->once())->method('doesObjectExist')->with($this->equalTo('/test-key'), $this->equalTo(['option' => true, 'prefix' => '']))->willReturn(true);
+        $this->Connection->expects($this->once())->method('getObject')->with($this->equalTo('/test-key'), $this->equalTo(['option' => true, 'prefix' => '']))->willReturn($this->Result);
+        $this->Connection->expects($this->once())->method('headObject')->with($this->equalTo('/test-key'), $this->equalTo(['option' => true, 'prefix' => '']))->willReturn($this->Result);
+        $this->Connection->expects($this->once())->method('copyObject')->with($this->equalTo('/test-src-key'), $this->equalTo('/test-dest-key'), $this->equalTo(['option' => true, 'prefix' => '']))->willReturn($this->Result);
 
         // Test start.
         $S3Bucket = new MockS3Bucket();
@@ -85,28 +91,13 @@ class S3BucketTest extends TestCase
      */
     public function testGetObjectBody()
     {
-        // Create string stream -> using \Aws\Result mock
         $contentString = 'Sample Text';
         $stream = fopen('php://memory', 'r+');
         fwrite($stream, $contentString);
         rewind($stream);
 
-        // Create \Aws\Result mock -> using Connection mock
-        $awsResultMock = \Mockery::mock('\Aws\Result');
-        $awsResultMock->shouldReceive('get')
-            ->once()
-            ->with('Body')
-            ->andReturn(new Stream($stream));
-
-        // Create Connection mock -> using ConnectionManager mock
-        $connectionMock = \Mockery::mock('\S3Bucket\Datasource\Connection');
-        $connectionMock->shouldReceive('getObject')
-            ->once()
-            ->with('/test-key', [])
-            ->andReturn($awsResultMock);
-
-        // Set ConnectionManager mock
-        MockConnectionManager::$connection = $connectionMock;
+        $this->Result->expects($this->once())->method('get')->with($this->equalTo('Body'))->willReturn(new Stream($stream));
+        $this->Connection->expects($this->once())->method('getObject')->with($this->equalTo('/test-key'), $this->equalTo(['prefix' => '']))->willReturn($this->Result);
 
         // Test start.
         $S3Bucket = new MockS3Bucket();
@@ -121,17 +112,8 @@ class S3BucketTest extends TestCase
      */
     public function testMoveObject()
     {
-        // Create Connection mock -> using ConnectionManager mock
-        $connectionMock = \Mockery::mock('\S3Bucket\Datasource\Connection');
-        $connectionMock->shouldReceive('copyObject')
-            ->once()
-            ->with('/test-src-key', '/test-dest-key', []);
-        $connectionMock->shouldReceive('deleteObject')
-            ->once()
-            ->with('/test-src-key', []);
-
-        // Set ConnectionManager mock
-        MockConnectionManager::$connection = $connectionMock;
+        $this->Connection->expects($this->once())->method('copyObject')->with($this->equalTo('/test-src-key'), $this->equalTo('/test-dest-key'), $this->equalTo(['prefix' => '']))->willReturn($this->Result);
+        $this->Connection->expects($this->once())->method('deleteObject')->with($this->equalTo('/test-src-key'), $this->equalTo(['prefix' => '']))->willReturn($this->Result);
 
         // Test start.
         $S3Bucket = new MockS3Bucket();
