@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<ruleset name="Custom_CakePHP">
+    <rule ref="vendor/cakephp/cakephp-codesniffer/CakePHP">
+        <exclude name="PSR1.Classes.ClassDeclaration.MultipleClasses" />
+        <exclude name="Squiz.Classes.ClassFileName.NoMatch" />
+        <exclude name="CakePHP.Commenting"/>
+    </rule>
+</ruleset>

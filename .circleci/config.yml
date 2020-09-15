@@ -1,0 +1,55 @@
+version: 2.1
+
+jobs:
+  composer:
+    working_directory: /tmp/project
+    docker:
+      - image: circleci/php:7.4.2-node-browsers
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-composer-{{ checksum "composer.json" }}
+            - v1-composer-
+      - run:
+          command: |
+            sudo apt install -y libsqlite3-dev zlib1g-dev
+            sudo docker-php-ext-install zip
+            sudo composer self-update
+      - run: composer install --no-interaction --prefer-dist --optimize-autoloader
+      - save_cache:
+          key: v1-composer-{{ checksum "composer.json" }}
+          paths:
+            - vendor
+      - persist_to_workspace:
+          root: /tmp/project
+          paths:
+            - vendor
+
+  phpunit:
+    working_directory: /tmp/project
+    docker:
+        - image: circleci/php:7.4.2-node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: workspace
+      - run:
+          command: cp -a workspace/vendor .
+      - run:
+          command: php vendor/bin/phpunit --testsuite app --no-logging --colors=always
+      - run:
+          command: php vendor/bin/phpstan analyse --level=2 src
+      - run:
+          command: |
+            php vendor/bin/phpcs --config-set installed_paths vendor/cakephp/cakephp-codesniffer
+            php vendor/bin/phpcs --colors -p -s --standard=custom_ruleset.xml src tests
+
+workflows:
+  version: 2
+  unittest:
+    jobs:
+      - composer
+      - phpunit:
+          requires:
+            - composer
