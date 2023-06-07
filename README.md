@@ -1,4 +1,4 @@
-# AWS S3Bucket plugin for CakePHP 4.x
+# [Departed] AWS S3Bucket plugin for CakePHP 4.x
 
 ## Installation
 
